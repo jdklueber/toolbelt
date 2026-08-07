@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(python D:\\\\git\\\\toolbelt\\\\toolbelt.py hello)"
+    ]
+  }
+}
