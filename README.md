@@ -104,3 +104,7 @@ Exit code is `0` if all repos succeeded, `1` if any failed.
    ```
 
 `{TOOLBELT_ROOT}` is substituted at runtime with the absolute path to the repo, so paths work from any working directory.
+
+## License
+
+MIT License with Commons Clause. Free to use for any purpose, including commercial use on your own machines. Resale or redistribution for profit is not permitted. See [LICENSE](LICENSE).
