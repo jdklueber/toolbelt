@@ -6,5 +6,9 @@
   "bulk-git": {
     "script": "{TOOLBELT_ROOT}/commands/bulk-git.py",
     "args": ""
+  },
+  "git-at": {
+    "script": "{TOOLBELT_ROOT}/commands/git-at.py",
+    "args": ""
   }
 }
