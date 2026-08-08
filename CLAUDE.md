@@ -58,10 +58,10 @@ Smoke-test command. Prints "Hello, World!".
 Runs git operations across a set of repos in parallel.
 
 ```
-toolbelt bulk-git <config.json|--here> <git-command> [args...]
+toolbelt bulk-git <config|config.json|--here> <git-command> [args...]
 ```
 
-- **config.json**: filename resolved from `$TOOLBELT_CONFIG/repos/<name>.json`. Absolute paths also accepted.
+- **config**: filename resolved from `$TOOLBELT_CONFIG/repos/<name>.json` — the `.json` extension is optional (`writing` and `writing.json` both work). Absolute/relative paths to an existing file are also accepted as-is.
 - **--here**: operates on all git repos found directly under the current working directory.
 - `clone` is only valid with a config file (needs URLs). All other git subcommands work with both sources.
 

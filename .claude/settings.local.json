@@ -4,7 +4,14 @@
       "PowerShell(python D:\\\\git\\\\toolbelt\\\\toolbelt.py hello)",
       "Bash(./toolbelt hello *)",
       "Bash(./toolbelt nonexistent *)",
-      "Bash(./toolbelt bulk-git *)"
+      "Bash(./toolbelt bulk-git *)",
+      "Read(//home/jason/git/**)",
+      "Read(//home/jason/writing/**)",
+      "Read(//home/jason/godot/**)",
+      "Read(//home/jason/.config/toolbelt/**)",
+      "Read(//home/jason/.config/toolbelt/repos/**)",
+      "Bash(export TOOLBELT_CONFIG=\"/home/jason/.config/toolbelt\")",
+      "Bash(/home/jason/git/toolbelt/toolbelt bulk-git *)"
     ]
   }
 }

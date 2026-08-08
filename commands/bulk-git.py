@@ -64,14 +64,15 @@ def run_command(name, repo_path, git_args):
 
 
 def load_config(source):
-    if Path(source).is_absolute() or Path(source).exists():
+    if Path(source).is_absolute() or Path(source).is_file():
         config_path = Path(source)
     else:
         config_dir = os.environ.get("TOOLBELT_CONFIG")
         if not config_dir:
             print("Error: TOOLBELT_CONFIG environment variable is not set")
             sys.exit(1)
-        config_path = Path(config_dir) / "repos" / source
+        filename = source if source.endswith(".json") else f"{source}.json"
+        config_path = Path(config_dir) / "repos" / filename
 
     with open(config_path) as f:
         config = json.load(f)
@@ -99,7 +100,7 @@ def main():
 
     args = sys.argv[1:]
     if len(args) < 2:
-        print("Usage: bulk-git <config.json|--here> <git-command> [args...]")
+        print("Usage: bulk-git <config|config.json|--here> <git-command> [args...]")
         sys.exit(1)
 
     source   = args[0]
