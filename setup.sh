@@ -54,8 +54,8 @@ add_to_rc() {
     fi
 }
 
-add_to_rc "TOOLBELT_CONFIG"  "export TOOLBELT_CONFIG=\"$config_dir\""
-add_to_rc "toolbelt"         "export PATH=\"$SCRIPT_DIR:\$PATH\""
+add_to_rc "export TOOLBELT_CONFIG=" "export TOOLBELT_CONFIG=\"$config_dir\""
+add_to_rc "export PATH=\"$SCRIPT_DIR"  "export PATH=\"$SCRIPT_DIR:\$PATH\""
 
 # ── Make entry point executable ────────────────────────────────────────────────
 chmod +x "$SCRIPT_DIR/toolbelt"

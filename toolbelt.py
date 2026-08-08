@@ -23,9 +23,10 @@ def main():
         print(f"Available commands: {', '.join(sorted(commands))}")
         sys.exit(1)
 
-    template = commands[command_name]
-    cmd_str = template.replace("{TOOLBELT_ROOT}", str(TOOLBELT_ROOT))
-    cmd = cmd_str.split() + extra_args
+    entry = commands[command_name]
+    script = entry["script"].replace("{TOOLBELT_ROOT}", str(TOOLBELT_ROOT))
+    baked_args = entry.get("args", "").split()
+    cmd = [sys.executable, script] + baked_args + extra_args
 
     result = subprocess.run(cmd)
     sys.exit(result.returncode)

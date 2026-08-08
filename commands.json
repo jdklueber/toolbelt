@@ -1,4 +1,10 @@
 {
-  "hello": "python {TOOLBELT_ROOT}/commands/hello.py",
-  "bulk-git": "python {TOOLBELT_ROOT}/commands/bulk-git.py"
+  "hello": {
+    "script": "{TOOLBELT_ROOT}/commands/hello.py",
+    "args": ""
+  },
+  "bulk-git": {
+    "script": "{TOOLBELT_ROOT}/commands/bulk-git.py",
+    "args": ""
+  }
 }

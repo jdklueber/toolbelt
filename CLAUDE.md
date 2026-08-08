@@ -8,20 +8,31 @@ A personal cross-platform CLI dispatcher. Commands are registered in `commands.j
 toolbelt/
   toolbelt.py       # dispatcher — reads commands.json, resolves paths, runs the command
   toolbelt.bat      # Windows PATH entry point; calls toolbelt.py with %~dp0 so no hardcoded paths
-  commands.json     # command registry: name → shell command template
+  commands.json     # command registry: name → {script, args}
   commands/         # one script per command
 ```
 
 ### How dispatch works
 
-`toolbelt.py` reads `commands.json`, looks up the command name, substitutes `{TOOLBELT_ROOT}` with the absolute path of the repo root (derived from `__file__`), splits the result into a list, appends any extra CLI args, and runs it via `subprocess.run`.
+Every command is a Python script — `toolbelt.py` always invokes it with `sys.executable`, the same interpreter that is currently running `toolbelt.py` itself. This is what makes the dispatcher work identically whether the platform entry point launched it as `python` (Windows) or `python3` (Linux): there's no `python`/`python3` guessing anywhere in `commands.json`.
+
+For each command, `commands.json` holds two separate strings:
+- `script`: path to the command's script, with `{TOOLBELT_ROOT}` substituted for the repo root (derived from `__file__`). Kept as a single, unsplit token — safe even if the path contains spaces.
+- `args`: optional baked-in arguments, whitespace-split and prepended before any extra CLI args.
+
+`toolbelt.py` builds `[sys.executable, script] + baked_args + extra_args` and runs it via `subprocess.run`. Keeping `sys.executable` as its own list element (rather than interpolating it into a string that later gets `.split()`) avoids breaking on interpreter paths with spaces, e.g. Windows' default `C:\Program Files\Python311\python.exe`.
+
+If a command needs to launch something that isn't Python (a JVM, a binary, etc.), write a Python wrapper script in `commands/` that shells out to it — don't add a non-Python entry to `commands.json`.
 
 ### Adding a new command
 
 1. Create `commands/<name>.py`.
 2. Add an entry to `commands.json`:
    ```json
-   "name": "python {TOOLBELT_ROOT}/commands/name.py"
+   "name": {
+     "script": "{TOOLBELT_ROOT}/commands/name.py",
+     "args": ""
+   }
    ```
 That's it. No changes to the dispatcher needed.
 

@@ -1,7 +1,10 @@
 {
   "permissions": {
     "allow": [
-      "PowerShell(python D:\\\\git\\\\toolbelt\\\\toolbelt.py hello)"
+      "PowerShell(python D:\\\\git\\\\toolbelt\\\\toolbelt.py hello)",
+      "Bash(./toolbelt hello *)",
+      "Bash(./toolbelt nonexistent *)",
+      "Bash(./toolbelt bulk-git *)"
     ]
   }
 }
