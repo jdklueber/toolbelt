@@ -11,7 +11,14 @@
       "Read(//home/jason/.config/toolbelt/**)",
       "Read(//home/jason/.config/toolbelt/repos/**)",
       "Bash(export TOOLBELT_CONFIG=\"/home/jason/.config/toolbelt\")",
-      "Bash(/home/jason/git/toolbelt/toolbelt bulk-git *)"
+      "Bash(/home/jason/git/toolbelt/toolbelt bulk-git *)",
+      "Bash(python3 -m pytest --version)",
+      "Bash(git --version)",
+      "Bash(python3 -m venv .venv)",
+      "Bash(.venv/bin/python -m pip install -q --upgrade pip pytest)",
+      "Bash(.venv/bin/python -m pytest --version)",
+      "Bash(git check-ignore *)",
+      "Bash(.venv/bin/python -m pytest -q)"
     ]
   }
 }

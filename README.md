@@ -105,6 +105,16 @@ Exit code is `0` if all repos succeeded, `1` if any failed.
 
 `{TOOLBELT_ROOT}` is substituted at runtime with the absolute path to the repo, so paths work from any working directory.
 
+## Running tests
+
+```bash
+python3 -m venv .venv
+.venv/bin/pip install -r requirements-dev.txt
+.venv/bin/pytest
+```
+
+`toolbelt doctor` also runs the suite (via `sys.executable -m pytest -q`) as part of its health check.
+
 ## License
 
 MIT License with Commons Clause. Free to use for any purpose, including commercial use on your own machines. Resale or redistribution for profit is not permitted. See [LICENSE](LICENSE).
