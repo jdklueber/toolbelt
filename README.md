@@ -28,16 +28,20 @@ toolbelt hello
 
 `setup.sh` will check for `uv`, prompt for your `TOOLBELT_CONFIG` directory, create it, add both `TOOLBELT_CONFIG` and the repo to your PATH in your shell RC file, and pre-sync the `uv`-managed environment. That's all you need on Linux.
 
-### 3. Windows — manual setup
+### 3. Windows — run the setup script
 
-Add two entries via System Properties → Environment Variables:
+```bat
+setup.bat
+```
+
+`setup.bat` checks for `uv` and installs it via `winget` if it's missing. It then prints instructions for the two manual steps that require System Properties → Environment Variables:
 
 | Variable | Value |
 |---|---|
-| `PATH` | append `D:\git\toolbelt` (or wherever you cloned) |
-| `TOOLBELT_CONFIG` | `D:\etc` (or wherever you want config/secrets to live) |
+| `PATH` | append the repo root (e.g. `D:\git\toolbelt`) |
+| `TOOLBELT_CONFIG` | your config/secrets directory (e.g. `D:\etc`) |
 
-Open a new terminal and run `toolbelt hello` to confirm.
+Open a new terminal after setting those and run `toolbelt hello` to confirm.
 
 ## Commands
 
