@@ -144,7 +144,8 @@ def run_status(name, repo_path):
 
 
 def load_config(source):
-    if Path(source).is_absolute() or Path(source).is_file():
+    has_path_hint = "/" in source or "\\" in source or source.endswith(".json")
+    if Path(source).is_absolute() or (has_path_hint and Path(source).is_file()):
         config_path = Path(source)
     else:
         config_dir = os.environ.get("TOOLBELT_CONFIG")
