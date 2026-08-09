@@ -14,8 +14,11 @@ info() { echo -e "${CYAN}  -->  ${RESET}$*"; }
 warn() { echo -e "${YELLOW}  [!]  ${RESET}$*"; }
 
 # ── Sanity checks ─────────────────────────────────────────────────────────────
-if ! command -v python3 &>/dev/null; then
-    echo "Error: python3 not found. Install Python 3 and try again."
+if ! command -v uv &>/dev/null; then
+    echo "Error: uv not found. toolbelt uses uv to manage its Python interpreter"
+    echo "and dependencies — no other install is required."
+    echo "Install it from https://docs.astral.sh/uv/getting-started/installation/"
+    echo "and try again."
     exit 1
 fi
 
@@ -60,6 +63,10 @@ add_to_rc "export PATH=\"$SCRIPT_DIR"  "export PATH=\"$SCRIPT_DIR:\$PATH\""
 # ── Make entry point executable ────────────────────────────────────────────────
 chmod +x "$SCRIPT_DIR/toolbelt"
 ok "toolbelt marked executable"
+
+# ── Prep the uv-managed environment ─────────────────────────────────────────────
+uv sync --project "$SCRIPT_DIR"
+ok "uv environment ready"
 
 # ── Done ──────────────────────────────────────────────────────────────────────
 echo ""

@@ -11,7 +11,8 @@ TOOLBELT_ROOT = Path(__file__).resolve().parent.parent
 USAGE = "toolbelt doctor"
 DESCRIPTION = (
     "Health check: prints configured environment variables, pulls the "
-    "latest toolbelt code, and runs the test suite."
+    "latest toolbelt code, syncs dependencies with uv, and runs the test "
+    "suite."
 )
 
 GREEN  = "\033[92m"
@@ -63,6 +64,27 @@ def git_pull():
     print()
 
 
+def uv_sync():
+    print("Dependencies:")
+    try:
+        result = subprocess.run(
+            ["uv", "sync"],
+            cwd=TOOLBELT_ROOT,
+            capture_output=True,
+            text=True,
+        )
+    except FileNotFoundError:
+        print(f"  {YELLOW}uv not found — skipping.{RESET}")
+        print()
+        return
+
+    if result.returncode == 0:
+        print(f"  {GREEN}[OK]{RESET}  {last_line(result.stdout + result.stderr)}")
+    else:
+        print(f"  {RED}[FAIL]{RESET}  {last_line(result.stderr)}")
+    print()
+
+
 def run_tests():
     print("Tests:")
     try:
@@ -109,6 +131,7 @@ def main():
 
     print_env_vars()
     git_pull()
+    uv_sync()
     run_tests()
 
 

@@ -18,7 +18,9 @@
       "Bash(.venv/bin/python -m pip install -q --upgrade pip pytest)",
       "Bash(.venv/bin/python -m pytest --version)",
       "Bash(git check-ignore *)",
-      "Bash(.venv/bin/python -m pytest -q)"
+      "Bash(.venv/bin/python -m pytest -q)",
+      "Bash(uv run *)",
+      "Bash(uv sync *)"
     ]
   }
 }

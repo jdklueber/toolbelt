@@ -8,13 +8,17 @@ toolbelt <command> [args...]
 
 ## Setup
 
-### 1. Clone the repo
+### 1. Install uv
+
+toolbelt uses [uv](https://docs.astral.sh/uv/) to manage its Python interpreter and dependencies — it's the only thing you need to install globally. See the [installation guide](https://docs.astral.sh/uv/getting-started/installation/) for your platform.
+
+### 2. Clone the repo
 
 ```
 git clone https://github.com/jdklueber/toolbelt.git
 ```
 
-### 2. Linux — run the setup script
+### 3. Linux — run the setup script
 
 ```bash
 bash setup.sh
@@ -22,9 +26,9 @@ source ~/.bashrc   # or ~/.zshrc
 toolbelt hello
 ```
 
-`setup.sh` will prompt for your `TOOLBELT_CONFIG` directory, create it, and add both `TOOLBELT_CONFIG` and the repo to your PATH in your shell RC file. That's all you need on Linux.
+`setup.sh` will check for `uv`, prompt for your `TOOLBELT_CONFIG` directory, create it, add both `TOOLBELT_CONFIG` and the repo to your PATH in your shell RC file, and pre-sync the `uv`-managed environment. That's all you need on Linux.
 
-### 2. Windows — manual setup
+### 3. Windows — manual setup
 
 Add two entries via System Properties → Environment Variables:
 
@@ -100,20 +104,27 @@ Exit code is `0` if all repos succeeded, `1` if any failed.
 1. Create `commands/<name>.py`.
 2. Register it in `commands.json`:
    ```json
-   "name": "python {TOOLBELT_ROOT}/commands/name.py"
+   "name": {
+     "script": "{TOOLBELT_ROOT}/commands/name.py",
+     "args": "",
+     "description": "One-line purpose, shown by `toolbelt list`."
+   }
    ```
 
 `{TOOLBELT_ROOT}` is substituted at runtime with the absolute path to the repo, so paths work from any working directory.
 
+Need a third-party package? Add it to `[project.dependencies]` in `pyproject.toml` (`uv add <package>` from the repo root) and run `uv lock`. `uv` resolves it into the managed environment automatically the next time `toolbelt` runs — no separate install step for anyone using it.
+
 ## Running tests
 
+Dependencies (project and dev, currently just `pytest`) are managed with [uv](https://docs.astral.sh/uv/).
+
 ```bash
-python3 -m venv .venv
-.venv/bin/pip install -r requirements-dev.txt
-.venv/bin/pytest
+uv sync
+uv run pytest
 ```
 
-`toolbelt doctor` also runs the suite (via `sys.executable -m pytest -q`) as part of its health check.
+`toolbelt doctor` also runs the suite (via `sys.executable -m pytest -q`) as part of its health check. Since the `toolbelt`/`toolbelt.bat` entry points launch everything through `uv run`, `sys.executable` is always the `uv`-managed interpreter — `doctor` finds `pytest` whether you invoke it via `uv run` or the bare `toolbelt` command.
 
 ## License
 

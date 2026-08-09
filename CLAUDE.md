@@ -2,27 +2,39 @@
 
 A personal cross-platform CLI dispatcher. Commands are registered in `commands.json` and invoked via a single `toolbelt <command>` entry point.
 
+`uv` is the only thing that needs to be installed globally. It manages both the Python interpreter and every dependency (runtime and dev) — see "How dispatch works" below.
+
 ## Architecture
 
 ```
 toolbelt/
+  toolbelt          # Linux/macOS PATH entry point; `exec uv run --project <root> toolbelt.py "$@"`
+  toolbelt.bat      # Windows PATH entry point; same idea via `uv run --project`
   toolbelt.py       # dispatcher — reads commands.json, resolves paths, runs the command
-  toolbelt.bat      # Windows PATH entry point; calls toolbelt.py with %~dp0 so no hardcoded paths
   commands.json     # command registry: name → {script, args}
   commands/         # one script per command
+  tests/            # pytest suite — mirrors commands/ one test file per command
+  pyproject.toml    # project deps (empty today) + dev dep-group (pytest), all uv-managed
+  uv.lock           # locked resolution for both groups, managed by uv
 ```
 
 ### How dispatch works
 
-Every command is a Python script — `toolbelt.py` always invokes it with `sys.executable`, the same interpreter that is currently running `toolbelt.py` itself. This is what makes the dispatcher work identically whether the platform entry point launched it as `python` (Windows) or `python3` (Linux): there's no `python`/`python3` guessing anywhere in `commands.json`.
+The platform entry points (`toolbelt`, `toolbelt.bat`) never call `python`/`python3` directly — they call `uv run --project <repo-root> toolbelt.py "$@"`. `--project` pins the lookup to the toolbelt repo's `pyproject.toml`/`.venv` regardless of the caller's current directory (verified: cwd itself is left untouched, which matters for `bulk-git --here`); `uv run` transparently syncs the venv first if `pyproject.toml`/`uv.lock` changed, and will download a matching Python build itself if none is present on the machine at all.
+
+Inside `toolbelt.py`, `sys.executable` is therefore always that same `uv`-managed interpreter, on both platforms — `toolbelt.py` invokes every command with `[sys.executable, script] + baked_args + extra_args` via `subprocess.run`, so commands automatically run under the identical, fully-dependency-resolved interpreter with no `python`/`python3` guessing anywhere. This is also why `toolbelt doctor`'s self-test step can always find `pytest`: it's a dev dependency in `pyproject.toml`, and `uv run` syncs dev deps by default.
 
 For each command, `commands.json` holds two separate strings:
 - `script`: path to the command's script, with `{TOOLBELT_ROOT}` substituted for the repo root (derived from `__file__`). Kept as a single, unsplit token — safe even if the path contains spaces.
 - `args`: optional baked-in arguments, whitespace-split and prepended before any extra CLI args.
 
-`toolbelt.py` builds `[sys.executable, script] + baked_args + extra_args` and runs it via `subprocess.run`. Keeping `sys.executable` as its own list element (rather than interpolating it into a string that later gets `.split()`) avoids breaking on interpreter paths with spaces, e.g. Windows' default `C:\Program Files\Python311\python.exe`.
+Keeping `sys.executable` as its own list element (rather than interpolating it into a string that later gets `.split()`) avoids breaking on interpreter paths with spaces, e.g. Windows' default install locations.
 
 If a command needs to launch something that isn't Python (a JVM, a binary, etc.), write a Python wrapper script in `commands/` that shells out to it — don't add a non-Python entry to `commands.json`.
+
+### Adding a runtime dependency
+
+Add it to `[project.dependencies]` in `pyproject.toml` (`uv add <package>`) and run `uv lock`. Nothing else changes — every user's next `toolbelt` invocation picks it up via `uv run`'s automatic sync, with no manual/global install step for them.
 
 ### `--help` / `-h`
 
@@ -55,8 +67,10 @@ That's it. No changes to the dispatcher needed.
 
 ## Platform notes
 
+Both platforms require [`uv`](https://docs.astral.sh/uv/) installed and on `PATH` — it is the sole global dependency; no separate Python install is required.
+
 - **Windows**: `toolbelt.bat` is the entry point. Add the repo root to `PATH` manually.
-- **Linux**: `toolbelt` (no extension, bash) is the entry point. Run `bash setup.sh` after cloning — it prompts for `TOOLBELT_CONFIG`, creates the directory, and writes both env vars to the shell RC file. `setup.sh` is idempotent; re-running it skips lines already present.
+- **Linux**: `toolbelt` (no extension, bash) is the entry point. Run `bash setup.sh` after cloning — it checks for `uv`, prompts for `TOOLBELT_CONFIG`, creates the directory, writes both env vars to the shell RC file, and runs `uv sync` to pre-warm the environment. `setup.sh` is idempotent; re-running it skips lines already present.
 
 ## Existing commands
 

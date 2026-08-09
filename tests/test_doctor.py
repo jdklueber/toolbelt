@@ -60,6 +60,32 @@ def test_git_pull_fail(capsys, monkeypatch):
     assert "fatal: not a git repository" in out
 
 
+# ---- uv_sync ----
+
+def test_uv_sync_ok(capsys, monkeypatch):
+    monkeypatch.setattr(subprocess, "run", _fake_run(0, "", "Resolved 12 packages in 3ms\nChecked 5 packages in 0.24ms\n"))
+    doctor.uv_sync()
+    out = capsys.readouterr().out
+    assert "[OK]" in out
+    assert "Checked 5 packages in 0.24ms" in out
+
+
+def test_uv_sync_fail(capsys, monkeypatch):
+    monkeypatch.setattr(subprocess, "run", _fake_run(1, "", "error: failed to fetch package\n"))
+    doctor.uv_sync()
+    out = capsys.readouterr().out
+    assert "[FAIL]" in out
+    assert "error: failed to fetch package" in out
+
+
+def test_uv_sync_not_found(capsys, monkeypatch):
+    def raise_fnf(*a, **k):
+        raise FileNotFoundError("no such file")
+    monkeypatch.setattr(subprocess, "run", raise_fnf)
+    doctor.uv_sync()
+    assert "uv not found" in capsys.readouterr().out
+
+
 # ---- run_tests ----
 
 def test_run_tests_pytest_not_installed(capsys, monkeypatch):
@@ -117,3 +143,4 @@ def test_doctor_help(capsys, monkeypatch):
     out = capsys.readouterr().out
     assert out.startswith("Usage: toolbelt doctor")
     assert "Environment variables:" not in out
+    assert "Dependencies:" not in out

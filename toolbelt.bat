@@ -1,2 +1,2 @@
 @echo off
-python "%~dp0toolbelt.py" %*
+uv run --project "%~dp0" "%~dp0toolbelt.py" %*
