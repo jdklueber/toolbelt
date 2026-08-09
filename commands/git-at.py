@@ -4,6 +4,28 @@ import subprocess
 import sys
 from pathlib import Path
 
+from _common import print_help, wants_help
+
+USAGE = "toolbelt git-at <config|config.json> <repo-name> <git-command> [args...]"
+DESCRIPTION = (
+    "Runs a single git command against one repo from a bulk-git config, "
+    "from any working directory."
+)
+OPTIONS = [
+    (
+        "config",
+        "Resolved from $TOOLBELT_CONFIG/repos/<name>.json (.json extension "
+        "optional), or an absolute/relative path to an existing file.",
+    ),
+    (
+        "repo-name",
+        "Must match a key in the config's repos list; resolved as "
+        "<root>/<repo-name>.",
+    ),
+    ("git-command", "Git subcommand to run (e.g. status, pull, fetch)."),
+    ("args...", "Additional arguments passed through to the git command."),
+]
+
 
 def load_config(source):
     if Path(source).is_absolute() or Path(source).is_file():
@@ -30,8 +52,12 @@ def load_config(source):
 
 def main():
     args = sys.argv[1:]
+    if wants_help(args):
+        print_help(USAGE, DESCRIPTION, OPTIONS)
+        return
+
     if len(args) < 3:
-        print("Usage: git-at <config|config.json> <repo-name> <git-command> [args...]")
+        print(f"Usage: {USAGE}")
         sys.exit(1)
 
     source, repo_name, *git_args = args

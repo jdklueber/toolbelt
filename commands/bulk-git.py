@@ -6,6 +6,31 @@ import sys
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
+from _common import print_help, wants_help
+
+USAGE = "toolbelt bulk-git <config|config.json|--here> <git-command> [args...]"
+DESCRIPTION = "Runs git operations across a set of repos in parallel."
+OPTIONS = [
+    (
+        "config",
+        "Filename resolved from $TOOLBELT_CONFIG/repos/<name>.json (.json "
+        "extension optional), or an absolute/relative path to an existing "
+        "file.",
+    ),
+    (
+        "--here",
+        "Operates on all git repos found directly under the current "
+        "working directory, instead of a config file. Not valid with "
+        "clone.",
+    ),
+    (
+        "git-command",
+        'Git subcommand to run (e.g. status, pull, fetch). "clone" is '
+        "only valid with a config file, since it needs URLs.",
+    ),
+    ("args...", "Additional arguments passed through to the git command."),
+]
+
 GREEN  = "\033[92m"
 RED    = "\033[91m"
 YELLOW = "\033[93m"
@@ -154,8 +179,12 @@ def main():
     enable_ansi()
 
     args = sys.argv[1:]
+    if wants_help(args):
+        print_help(USAGE, DESCRIPTION, OPTIONS)
+        return
+
     if len(args) < 2:
-        print("Usage: bulk-git <config|config.json|--here> <git-command> [args...]")
+        print(f"Usage: {USAGE}")
         sys.exit(1)
 
     source   = args[0]

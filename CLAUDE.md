@@ -24,14 +24,23 @@ For each command, `commands.json` holds two separate strings:
 
 If a command needs to launch something that isn't Python (a JVM, a binary, etc.), write a Python wrapper script in `commands/` that shells out to it — don't add a non-Python entry to `commands.json`.
 
+### `--help` / `-h`
+
+Every command supports `--help`/`-h` and prints its usage, description, and parameters instead of running. This is implemented via `commands/_common.py` (a shared helper, not itself a registered command — scripts in the same directory can `import _common` directly since Python puts a script's own directory on `sys.path`):
+
+- `wants_help(args)`: checks the command's `sys.argv[1:]` for `-h`/`--help`.
+- `print_help(usage, description="", options=None)`: prints the usage line, then the description, then an `Options:` list — all wrapped at 75 characters (`break_on_hyphens=False`, so tokens like `<repo-name>` don't get split), matching the style of `toolbelt list`.
+
 ### Adding a new command
 
 1. Create `commands/<name>.py`.
-2. Add an entry to `commands.json`:
+2. Handle `--help`/`-h` at the top of `main()` using `_common.wants_help` / `_common.print_help` (see any existing command for the pattern).
+3. Add an entry to `commands.json`:
    ```json
    "name": {
      "script": "{TOOLBELT_ROOT}/commands/name.py",
-     "args": ""
+     "args": "",
+     "description": "One-line purpose, shown by `toolbelt list`."
    }
    ```
 That's it. No changes to the dispatcher needed.
@@ -50,6 +59,9 @@ That's it. No changes to the dispatcher needed.
 - **Linux**: `toolbelt` (no extension, bash) is the entry point. Run `bash setup.sh` after cloning — it prompts for `TOOLBELT_CONFIG`, creates the directory, and writes both env vars to the shell RC file. `setup.sh` is idempotent; re-running it skips lines already present.
 
 ## Existing commands
+
+### `list`
+Lists every toolbelt command and its purpose (from each entry's `description` in `commands.json`) as a plain, wrapped table — no borders.
 
 ### `hello`
 Smoke-test command. Prints "Hello, World!".

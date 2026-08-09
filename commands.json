@@ -1,14 +1,27 @@
 {
   "hello": {
     "script": "{TOOLBELT_ROOT}/commands/hello.py",
-    "args": ""
+    "args": "",
+    "description": "Smoke-test command. Prints \"Hello, World!\"."
   },
   "bulk-git": {
     "script": "{TOOLBELT_ROOT}/commands/bulk-git.py",
-    "args": ""
+    "args": "",
+    "description": "Runs git operations across a set of repos in parallel."
   },
   "git-at": {
     "script": "{TOOLBELT_ROOT}/commands/git-at.py",
-    "args": ""
+    "args": "",
+    "description": "Runs a single git command against one repo from a bulk-git config."
+  },
+  "list": {
+    "script": "{TOOLBELT_ROOT}/commands/list.py",
+    "args": "",
+    "description": "Lists every toolbelt command and its purpose."
+  },
+  "doctor": {
+    "script": "{TOOLBELT_ROOT}/commands/doctor.py",
+    "args": "",
+    "description": "Health check: env vars, git pull, and test results."
   }
 }
