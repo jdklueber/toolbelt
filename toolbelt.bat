@@ -1,2 +1,3 @@
 @echo off
-uv run --project "%~dp0" "%~dp0toolbelt.py" %*
+set "TOOLBELT_ROOT=%~dp0"
+uv run --project "%TOOLBELT_ROOT:~0,-1%" "%TOOLBELT_ROOT%toolbelt.py" %*
