@@ -28,7 +28,7 @@ OPTIONS = [
 
 
 def load_config(source):
-    if Path(source).is_absolute() or Path(source).is_file():
+    if Path(source).is_absolute() or (source.endswith(".json") and Path(source).is_file()):
         config_path = Path(source)
     else:
         config_dir = os.environ.get("TOOLBELT_CONFIG")
