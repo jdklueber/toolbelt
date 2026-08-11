@@ -4,7 +4,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from _common import print_help, wants_help
+from _common import handle_list, print_help, wants_help
 
 USAGE = "toolbelt git-at <config|config.json> <repo-name> <git-command> [args...]"
 DESCRIPTION = (
@@ -18,12 +18,24 @@ OPTIONS = [
         "optional), or an absolute/relative path to an existing file.",
     ),
     (
+        "--list [config]",
+        "List all available repo configs, or list the repos within a "
+        "specific config.",
+    ),
+    (
         "repo-name",
         "Must match a key in the config's repos list; resolved as "
         "<root>/<repo-name>.",
     ),
     ("git-command", "Git subcommand to run (e.g. status, pull, fetch)."),
     ("args...", "Additional arguments passed through to the git command."),
+]
+EXAMPLES = [
+    "toolbelt git-at --list",
+    "toolbelt git-at --list writing",
+    "toolbelt git-at writing my-repo status",
+    "toolbelt git-at writing my-repo log --oneline -10",
+    "toolbelt git-at writing my-repo checkout main",
 ]
 
 
@@ -53,7 +65,9 @@ def load_config(source):
 def main():
     args = sys.argv[1:]
     if wants_help(args):
-        print_help(USAGE, DESCRIPTION, OPTIONS)
+        print_help(USAGE, DESCRIPTION, OPTIONS, EXAMPLES)
+        return
+    if handle_list(args):
         return
 
     if len(args) < 3:

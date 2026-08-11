@@ -72,44 +72,25 @@ Both platforms require [`uv`](https://docs.astral.sh/uv/) installed and on `PATH
 - **Windows**: `toolbelt.bat` is the entry point. Add the repo root to `PATH` manually.
 - **Linux**: `toolbelt` (no extension, bash) is the entry point. Run `bash setup.sh` after cloning — it checks for `uv`, prompts for `TOOLBELT_CONFIG`, creates the directory, writes both env vars to the shell RC file, and runs `uv sync` to pre-warm the environment. `setup.sh` is idempotent; re-running it skips lines already present.
 
-## Existing commands
+## Command inventory
 
-### `list`
-Lists every toolbelt command and its purpose (from each entry's `description` in `commands.json`) as a plain, wrapped table — no borders.
+The authoritative list of commands and their one-line descriptions lives in `commands.json`. Each command also supports `--help`/`-h` for full usage. Don't duplicate command docs here.
 
-### `hello`
-Smoke-test command. Prints "Hello, World!".
+## System stability: setup and doctor
 
-### `bulk-git`
-Runs git operations across a set of repos in parallel.
+These two are the load-bearing pieces of the operational lifecycle. **Whenever infrastructure changes** (new env vars, new deps, new platform requirements, changes to the dispatch mechanism), both `setup.sh`/`setup.bat` and `commands/doctor.py` must be updated in the same commit, and the README must reflect the change too. These three must always be in sync.
 
-```
-toolbelt bulk-git <config|config.json|--here> <git-command> [args...]
-```
+### Setup (`setup.sh` / `setup.bat`)
 
-- **config**: filename resolved from `$TOOLBELT_CONFIG/repos/<name>.json` — the `.json` extension is optional (`writing` and `writing.json` both work). Absolute/relative paths to an existing file are also accepted as-is.
-- **--here**: operates on all git repos found directly under the current working directory.
-- `clone` is only valid with a config file (needs URLs). All other git subcommands work with both sources.
+Run once after cloning. Checks for `uv`, prompts for `TOOLBELT_CONFIG`, creates the config directory, writes env vars to the shell RC / system environment, and runs `uv sync` to pre-warm the venv. Both scripts are idempotent — re-running skips steps already done.
 
-Config file format (`$TOOLBELT_CONFIG/repos/*.json`):
-```json
-{
-  "root": "/path/to/clone/into",
-  "repos": [
-    {"repo-name": "https://github.com/user/repo.git"}
-  ]
-}
-```
+### Doctor (`toolbelt doctor`)
 
-### `git-at`
-Runs a single git command against one repo from a bulk-git config, from any working directory — no `cd` needed.
+The self-healing command. Run it when the system is misbehaving or after pulling updates. It:
 
-```
-toolbelt git-at <config|config.json> <repo-name> <git-command> [args...]
-```
+1. Prints all required environment variables and their current values (or warns if unset).
+2. Runs `git pull` to bring the repo up to date.
+3. Runs `uv sync` to align dependencies with the current `pyproject.toml`/`uv.lock`.
+4. Runs the full test suite via pytest and reports pass/fail.
 
-- **config**: resolved the same way as `bulk-git` (`$TOOLBELT_CONFIG/repos/<name>.json`, `.json` optional, or an absolute/relative path to an existing file).
-- **repo-name**: must match a key in the config's `repos` list; the repo path is resolved as `<root>/<repo-name>`.
-- Output and exit code are passed through directly (stdin/stdout/stderr inherited), so interactive git commands work normally.
-
-Output: one colored status line per repo — `[OK]` in green, `[FAIL]` in red with the last line of stderr appended.
+Because doctor both pulls changes *and* syncs deps, running it is sufficient to recover from most drift — users don't need to know which step failed.

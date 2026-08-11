@@ -26,7 +26,7 @@ source ~/.bashrc   # or ~/.zshrc
 toolbelt hello
 ```
 
-`setup.sh` will check for `uv`, prompt for your `TOOLBELT_CONFIG` directory, create it, add both `TOOLBELT_CONFIG` and the repo to your PATH in your shell RC file, and pre-sync the `uv`-managed environment. That's all you need on Linux.
+`setup.sh` will check for `uv`, prompt for your `TOOLBELT_CONFIG` directory, create it (including a `repos/` subdirectory), add both `TOOLBELT_CONFIG` and the repo to your PATH in your shell RC file, and pre-sync the `uv`-managed environment. That's all you need on Linux.
 
 ### 3. Windows — run the setup script
 
@@ -52,6 +52,29 @@ Smoke test.
 ```
 toolbelt hello
 ```
+
+### `list`
+
+Print all registered commands and their descriptions.
+
+```
+toolbelt list
+```
+
+### `doctor`
+
+Health check: prints configured environment variables, pulls the latest toolbelt code, syncs dependencies with `uv`, and runs the test suite.
+
+```
+toolbelt doctor
+```
+
+Output covers four steps in order:
+
+1. **Environment variables** — shows `TOOLBELT_CONFIG` (highlighted in yellow if unset).
+2. **Git pull** — pulls from the remote; reports `[OK]` or `[FAIL]` with the last line of output.
+3. **Dependencies** — runs `uv sync` to bring the managed environment up to date.
+4. **Tests** — runs `pytest -q` via `sys.executable`; reports pass count or lists failures by name.
 
 ### `bulk-git`
 
@@ -103,9 +126,27 @@ other-repo                               clone        [FAIL]  repository not fou
 
 Exit code is `0` if all repos succeeded, `1` if any failed.
 
+### `git-at`
+
+Run a single git command against one repo from a bulk-git config, from any working directory — no `cd` needed.
+
+```
+toolbelt git-at <config> <repo-name> <git-command> [args...]
+```
+
+- **config**: resolved the same way as `bulk-git` — filename from `$TOOLBELT_CONFIG/repos/` (`.json` extension optional), or an absolute/relative path to an existing file.
+- **repo-name**: must match a key in the config's `repos` list; the repo path is resolved as `<root>/<repo-name>`.
+
+stdin/stdout/stderr are passed through directly, so interactive git commands work normally.
+
+```
+toolbelt git-at writing my-novel log --oneline -5
+toolbelt git-at writing my-novel diff HEAD~1
+```
+
 ## Adding a new command
 
-1. Create `commands/<name>.py`.
+1. Create `commands/<name>.py`. Handle `--help`/`-h` at the top of `main()` using `_common.wants_help` and `_common.print_help` — see any existing command for the pattern.
 2. Register it in `commands.json`:
    ```json
    "name": {

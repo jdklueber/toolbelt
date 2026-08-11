@@ -51,7 +51,7 @@ def test_print_help_with_options(capsys):
     options = [("config", "The config file."), ("--here", "Use cwd repos.")]
     _common.print_help("toolbelt bulk-git", "desc", options)
     out = capsys.readouterr().out
-    assert "Options:" in out
+    assert "Arguments:" in out
     assert "config" in out
     assert "The config file." in out
     assert "--here" in out
@@ -60,7 +60,7 @@ def test_print_help_with_options(capsys):
 
 def test_print_help_no_options_section_when_none_given(capsys):
     _common.print_help("toolbelt hello", "desc")
-    assert "Options:" not in capsys.readouterr().out
+    assert "Arguments:" not in capsys.readouterr().out
 
 
 def test_print_help_options_wrap_with_aligned_indent(capsys):
@@ -72,7 +72,7 @@ def test_print_help_options_wrap_with_aligned_indent(capsys):
     lines = capsys.readouterr().out.splitlines()
 
     name_width = len("much-longer-name")
-    indent = " " * (name_width + 3)
+    indent = " " * (name_width + 4)
 
     continuation_lines = [
         line for line in lines

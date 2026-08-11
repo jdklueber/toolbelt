@@ -6,7 +6,7 @@ import sys
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
-from _common import print_help, wants_help
+from _common import handle_list, print_help, wants_help
 
 USAGE = "toolbelt bulk-git <config|config.json|--here> <git-command> [args...]"
 DESCRIPTION = "Runs git operations across a set of repos in parallel."
@@ -24,11 +24,24 @@ OPTIONS = [
         "clone.",
     ),
     (
+        "--list [config]",
+        "List all available repo configs, or list the repos within a "
+        "specific config.",
+    ),
+    (
         "git-command",
         'Git subcommand to run (e.g. status, pull, fetch). "clone" is '
         "only valid with a config file, since it needs URLs.",
     ),
     ("args...", "Additional arguments passed through to the git command."),
+]
+EXAMPLES = [
+    "toolbelt bulk-git --list",
+    "toolbelt bulk-git --list writing",
+    "toolbelt bulk-git writing status",
+    "toolbelt bulk-git writing pull --rebase",
+    "toolbelt bulk-git writing clone",
+    "toolbelt bulk-git --here fetch",
 ]
 
 GREEN  = "\033[92m"
@@ -181,7 +194,9 @@ def main():
 
     args = sys.argv[1:]
     if wants_help(args):
-        print_help(USAGE, DESCRIPTION, OPTIONS)
+        print_help(USAGE, DESCRIPTION, OPTIONS, EXAMPLES)
+        return
+    if handle_list(args):
         return
 
     if len(args) < 2:
