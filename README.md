@@ -78,7 +78,7 @@ Output covers four steps in order:
 
 ### `bulk-git`
 
-Run git operations across multiple repos in parallel, with colored per-repo output.
+Run git operations across multiple repos in parallel.
 
 ```
 toolbelt bulk-git <config.json|--here> <git-command> [args...]
