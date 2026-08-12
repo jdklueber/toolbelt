@@ -1,12 +1,48 @@
+import itertools
 import json
 import os
 import sys
 import textwrap
+import threading
+import time
+from contextlib import contextmanager
 from pathlib import Path
 
 WRAP_WIDTH = 75
 
 HELP_FLAGS = ("-h", "--help")
+
+SPINNER_FRAMES = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
+
+
+@contextmanager
+def spinner(message):
+    """Animate `message` with a spinner while a parallel operation runs.
+
+    No-ops when stdout isn't a tty (piped/captured output), so it's safe
+    to wrap unconditionally.
+    """
+    stop = threading.Event()
+
+    def spin():
+        for frame in itertools.cycle(SPINNER_FRAMES):
+            if stop.is_set():
+                break
+            sys.stdout.write(f"\r{frame} {message}")
+            sys.stdout.flush()
+            time.sleep(0.08)
+
+    thread = threading.Thread(target=spin, daemon=True) if sys.stdout.isatty() else None
+    if thread:
+        thread.start()
+    try:
+        yield
+    finally:
+        if thread:
+            stop.set()
+            thread.join()
+            sys.stdout.write("\r" + " " * (len(message) + 2) + "\r")
+            sys.stdout.flush()
 
 
 def wants_help(args):

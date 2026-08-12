@@ -6,7 +6,7 @@ import sys
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
-from _common import handle_list, print_help, wants_help
+from _common import handle_list, print_help, spinner, wants_help
 
 USAGE = "toolbelt bulk-git <config|config.json|--here> <git-command> [args...]"
 DESCRIPTION = "Runs git operations across a set of repos in parallel."
@@ -217,24 +217,26 @@ def main():
         root, repos = load_config(source)
 
     futures = {}
-    with ThreadPoolExecutor() as executor:
-        for name, url_or_path in repos:
-            if operation == "clone":
-                f = executor.submit(run_clone, name, url_or_path, root)
-            elif git_args == ["status"]:
-                repo_path = url_or_path if source == "--here" else str(Path(root) / name)
-                f = executor.submit(run_status, name, repo_path)
-            else:
-                repo_path = url_or_path if source == "--here" else str(Path(root) / name)
-                f = executor.submit(run_command, name, repo_path, git_args)
-            futures[f] = name
+    with spinner(f"Running '{' '.join(git_args)}' across {len(repos)} repos..."):
+        with ThreadPoolExecutor() as executor:
+            for name, url_or_path in repos:
+                if operation == "clone":
+                    f = executor.submit(run_clone, name, url_or_path, root)
+                elif git_args == ["status"]:
+                    repo_path = url_or_path if source == "--here" else str(Path(root) / name)
+                    f = executor.submit(run_status, name, repo_path)
+                else:
+                    repo_path = url_or_path if source == "--here" else str(Path(root) / name)
+                    f = executor.submit(run_command, name, repo_path, git_args)
+                futures[f] = name
 
-        all_ok = True
-        for future in as_completed(futures):
-            name, op, tag, msg = future.result()
-            print(status_line(name, op, tag, msg))
-            if tag == "FAIL":
-                all_ok = False
+            results = [future.result() for future in as_completed(futures)]
+
+    all_ok = True
+    for name, op, tag, msg in results:
+        print(status_line(name, op, tag, msg))
+        if tag == "FAIL":
+            all_ok = False
 
     sys.exit(0 if all_ok else 1)
 

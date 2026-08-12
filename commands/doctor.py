@@ -4,7 +4,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from _common import print_help, wants_help
+from _common import print_help, spinner, wants_help
 
 TOOLBELT_ROOT = Path(__file__).resolve().parent.parent
 
@@ -51,12 +51,13 @@ def print_env_vars():
 
 def git_pull():
     print("Git pull:")
-    result = subprocess.run(
-        ["git", "pull"],
-        cwd=TOOLBELT_ROOT,
-        capture_output=True,
-        text=True,
-    )
+    with spinner("Pulling latest..."):
+        result = subprocess.run(
+            ["git", "pull"],
+            cwd=TOOLBELT_ROOT,
+            capture_output=True,
+            text=True,
+        )
     if result.returncode == 0:
         print(f"  {GREEN}[OK]{RESET}  {last_line(result.stdout)}")
     else:
@@ -67,12 +68,13 @@ def git_pull():
 def uv_sync():
     print("Dependencies:")
     try:
-        result = subprocess.run(
-            ["uv", "sync"],
-            cwd=TOOLBELT_ROOT,
-            capture_output=True,
-            text=True,
-        )
+        with spinner("Syncing dependencies..."):
+            result = subprocess.run(
+                ["uv", "sync"],
+                cwd=TOOLBELT_ROOT,
+                capture_output=True,
+                text=True,
+            )
     except FileNotFoundError:
         print(f"  {YELLOW}uv not found — skipping.{RESET}")
         print()
@@ -88,12 +90,13 @@ def uv_sync():
 def run_tests():
     print("Tests:")
     try:
-        result = subprocess.run(
-            [sys.executable, "-m", "pytest", "-q"],
-            cwd=TOOLBELT_ROOT,
-            capture_output=True,
-            text=True,
-        )
+        with spinner("Running tests..."):
+            result = subprocess.run(
+                [sys.executable, "-m", "pytest", "-q"],
+                cwd=TOOLBELT_ROOT,
+                capture_output=True,
+                text=True,
+            )
     except FileNotFoundError as e:
         print(f"  {YELLOW}Could not run pytest: {e}{RESET}")
         return

@@ -14,6 +14,11 @@
     "args": "",
     "description": "Runs a single git command against one repo from a bulk-git config."
   },
+  "sync-all": {
+    "script": "{TOOLBELT_ROOT}/commands/sync-all.py",
+    "args": "",
+    "description": "Syncs all repos in a config: aborts if any are dirty, then clones missing repos and pulls+pushes the rest."
+  },
   "list": {
     "script": "{TOOLBELT_ROOT}/commands/list.py",
     "args": "",

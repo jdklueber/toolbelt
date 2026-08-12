@@ -43,6 +43,19 @@ Every command supports `--help`/`-h` and prints its usage, description, and para
 - `wants_help(args)`: checks the command's `sys.argv[1:]` for `-h`/`--help`.
 - `print_help(usage, description="", options=None)`: prints the usage line, then the description, then an `Options:` list — all wrapped at 75 characters (`break_on_hyphens=False`, so tokens like `<repo-name>` don't get split), matching the style of `toolbelt list`.
 
+### Parallel work needs a spinner
+
+Any command that fans work out across repos/tasks and blocks until they're all done (e.g. via `ThreadPoolExecutor`) must wrap that block in `_common.spinner(message)` so the terminal shows a live "still working" animation instead of sitting silent. See `sync-all.py` and `bulk-git.py` for the pattern:
+
+```python
+with spinner(f"Syncing {len(repos)} repos..."):
+    with ThreadPoolExecutor() as executor:
+        ...
+        results = [future.result() for future in as_completed(futures)]
+```
+
+`spinner()` no-ops when stdout isn't a tty, so it's always safe to wrap unconditionally — piped/captured output (including tests) is unaffected. Collect results inside the `with` block and print them after it exits, so per-item output isn't interleaved with the spinner's carriage-return redraws.
+
 ### Adding a new command
 
 1. Create `commands/<name>.py`.
