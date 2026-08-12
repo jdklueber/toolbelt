@@ -117,6 +117,14 @@ Config files live in `$TOOLBELT_CONFIG/repos/`. Pass just the filename; absolute
 
 `root` is created automatically on `clone` if it doesn't exist.
 
+**List available configs, or the repos within one:**
+```
+toolbelt bulk-git --list
+toolbelt bulk-git --list writing-repos
+```
+
+`status` gets special handling: instead of raw git output, each repo reports `CLEAN`/`CHANGES` plus ahead/behind counts against its upstream (or `no upstream` if it isn't tracking one).
+
 #### Output
 
 ```
@@ -136,6 +144,7 @@ toolbelt git-at <config> <repo-name> <git-command> [args...]
 
 - **config**: resolved the same way as `bulk-git` — filename from `$TOOLBELT_CONFIG/repos/` (`.json` extension optional), or an absolute/relative path to an existing file.
 - **repo-name**: must match a key in the config's `repos` list; the repo path is resolved as `<root>/<repo-name>`.
+- **--list [config]**: same as `bulk-git --list` — list all available configs, or the repos within one.
 
 stdin/stdout/stderr are passed through directly, so interactive git commands work normally.
 
@@ -143,6 +152,23 @@ stdin/stdout/stderr are passed through directly, so interactive git commands wor
 toolbelt git-at writing my-novel log --oneline -5
 toolbelt git-at writing my-novel diff HEAD~1
 ```
+
+### `sync-all`
+
+Keep every repo in a config up to date in one shot: aborts before touching anything if any repo has uncommitted changes, then clones missing repos and fetch+pull+pushes the rest, in parallel. Pulls use plain merge semantics (`--no-rebase`); repos with no upstream tracking branch or in a detached HEAD state fail the pull step with git's own error message.
+
+```
+toolbelt sync-all <config|config.json>
+toolbelt sync-all --list [config]
+```
+
+Each repo reports a per-step audit trail (`clone`/`fetch`/`pull`/`push`, each tagged `OK`/`WARN`/`BLOCKED`/`CONFLICT`/`FAIL`). If a pull changes a dependency manifest (`package.json`, `uv.lock`, `Cargo.toml`, etc.), that repo gets an extra `deps-changed` `WARN` step naming the changed file(s), as a nudge to re-sync your local environment.
+
+```
+toolbelt sync-all writing-repos
+```
+
+Exit code is `0` if all repos succeeded, `1` if any failed or a merge conflict occurred.
 
 ## Adding a new command
 
