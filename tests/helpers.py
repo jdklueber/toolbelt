@@ -17,6 +17,39 @@ def load_command(module_name, filename):
     return module
 
 
+def setup_remote_repo(tmp_path):
+    """Creates a bare remote repo and a clean clone with an initial commit on main.
+
+    Returns (bare_path, clone_path) as Path objects.
+    """
+    import subprocess
+
+    bare = tmp_path / "remote.git"
+    bare.mkdir()
+    subprocess.run(["git", "init", "--bare", "-q", str(bare)], check=True)
+
+    seed = tmp_path / "_seed"
+    seed.mkdir()
+    subprocess.run(["git", "init", "-q", str(seed)], check=True)
+    subprocess.run(["git", "-C", str(seed), "config", "user.email", "test@example.com"], check=True)
+    subprocess.run(["git", "-C", str(seed), "config", "user.name", "Test"], check=True)
+    subprocess.run(["git", "-C", str(seed), "checkout", "-b", "main"], check=True, capture_output=True)
+    (seed / "README.md").write_text("hi\n")
+    subprocess.run(["git", "-C", str(seed), "add", "."], check=True)
+    subprocess.run(["git", "-C", str(seed), "commit", "-q", "-m", "init"], check=True)
+    subprocess.run(["git", "-C", str(seed), "remote", "add", "origin", str(bare)], check=True)
+    subprocess.run(["git", "-C", str(seed), "push", "-q", "-u", "origin", "main"], check=True)
+    # Point the bare repo's HEAD at main so clones check out the right branch.
+    subprocess.run(["git", "-C", str(bare), "symbolic-ref", "HEAD", "refs/heads/main"], check=True)
+
+    clone = tmp_path / "clone"
+    subprocess.run(["git", "clone", "-q", str(bare), str(clone)], check=True)
+    subprocess.run(["git", "-C", str(clone), "config", "user.email", "test@example.com"], check=True)
+    subprocess.run(["git", "-C", str(clone), "config", "user.name", "Test"], check=True)
+
+    return bare, clone
+
+
 def init_git_repo(path, with_commit=True):
     import subprocess
 

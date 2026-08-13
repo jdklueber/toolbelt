@@ -4,7 +4,7 @@ import sys
 
 import pytest
 
-from helpers import load_command, init_git_repo, COMMANDS_DIR
+from helpers import load_command, init_git_repo, setup_remote_repo, COMMANDS_DIR
 
 git_at = load_command("git_at_cmd", "git-at.py")
 
@@ -115,6 +115,44 @@ def test_main_too_few_args_prints_usage():
     )
     assert result.returncode == 1
     assert "Usage:" in result.stdout
+
+
+def test_main_reset_clean_repo(tmp_path):
+    _, clone = setup_remote_repo(tmp_path)
+    cfg = tmp_path / "conf.json"
+    cfg.write_text(json.dumps({"root": str(clone.parent), "repos": [{"clone": "url"}]}))
+    result = subprocess.run(
+        [sys.executable, str(GIT_AT_PY), str(cfg), "clone", "--reset"],
+        capture_output=True, text=True,
+    )
+    assert result.returncode == 0
+    assert "origin/main" in result.stdout
+
+
+def test_main_reset_dirty_without_force_fails(tmp_path):
+    _, clone = setup_remote_repo(tmp_path)
+    (clone / "dirty.txt").write_text("x\n")
+    cfg = tmp_path / "conf.json"
+    cfg.write_text(json.dumps({"root": str(clone.parent), "repos": [{"clone": "url"}]}))
+    result = subprocess.run(
+        [sys.executable, str(GIT_AT_PY), str(cfg), "clone", "--reset"],
+        capture_output=True, text=True,
+    )
+    assert result.returncode == 1
+    assert "--force" in result.stdout
+
+
+def test_main_reset_dirty_with_force_succeeds(tmp_path):
+    _, clone = setup_remote_repo(tmp_path)
+    (clone / "dirty.txt").write_text("x\n")
+    cfg = tmp_path / "conf.json"
+    cfg.write_text(json.dumps({"root": str(clone.parent), "repos": [{"clone": "url"}]}))
+    result = subprocess.run(
+        [sys.executable, str(GIT_AT_PY), str(cfg), "clone", "reset", "--force"],
+        capture_output=True, text=True,
+    )
+    assert result.returncode == 0
+    assert not (clone / "dirty.txt").exists()
 
 
 def test_main_help_flag():

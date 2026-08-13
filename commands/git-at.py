@@ -4,7 +4,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from _common import handle_list, print_help, wants_help
+from _common import handle_list, print_help, reset_repo, wants_help
 
 USAGE = "toolbelt git-at <config|config.json> <repo-name> <git-command> [args...]"
 DESCRIPTION = (
@@ -29,6 +29,17 @@ OPTIONS = [
     ),
     ("git-command", "Git subcommand to run (e.g. status, pull, fetch)."),
     ("args...", "Additional arguments passed through to the git command."),
+    (
+        "--reset",
+        "Toolbelt subcommand (not git reset): hard-resets the repo to its "
+        "remote tracking branch, then prunes untracked files. Falls back to "
+        "main if the current branch no longer exists on the remote. Fails "
+        "fast on local changes unless --force is also passed.",
+    ),
+    (
+        "--force",
+        "Used with --reset: discards all uncommitted changes before resetting.",
+    ),
 ]
 EXAMPLES = [
     "toolbelt git-at --list",
@@ -36,6 +47,8 @@ EXAMPLES = [
     "toolbelt git-at writing my-repo status",
     "toolbelt git-at writing my-repo log --oneline -10",
     "toolbelt git-at writing my-repo checkout main",
+    "toolbelt git-at writing my-repo --reset",
+    "toolbelt git-at writing my-repo --reset --force",
 ]
 
 
@@ -87,6 +100,12 @@ def main():
     if not repo_path.is_dir():
         print(f"Error: directory not found: {repo_path}")
         sys.exit(1)
+
+    if git_args and git_args[0] == "--reset":
+        force = "--force" in git_args
+        ok, msg = reset_repo(repo_path, force)
+        print(msg)
+        sys.exit(0 if ok else 1)
 
     result = subprocess.run(["git", *git_args], cwd=repo_path)
     sys.exit(result.returncode)

@@ -3,7 +3,7 @@ import sys
 
 import pytest
 
-from helpers import load_command, init_git_repo, COMMANDS_DIR
+from helpers import load_command, init_git_repo, setup_remote_repo, COMMANDS_DIR
 
 bulk_git = load_command("bulk_git_cmd", "bulk-git.py")
 
@@ -36,6 +36,52 @@ def test_status_line_omits_message_separator_when_absent():
 def test_status_line_colors_every_known_tag():
     for tag, color in bulk_git.TAG_COLORS.items():
         assert color in bulk_git.status_line("r", "op", tag)
+
+
+# ---- run_reset ----
+
+def test_run_reset_directory_missing():
+    _, op, tag, msg = bulk_git.run_reset("repo", "/does/not/exist", force=False)
+    assert op == "reset"
+    assert tag == "FAIL"
+    assert msg == "directory not found"
+
+
+def test_run_reset_clean_repo_succeeds(tmp_path):
+    _, clone = setup_remote_repo(tmp_path)
+    name, op, tag, msg = bulk_git.run_reset("repo", str(clone), force=False)
+    assert op == "reset"
+    assert tag == "OK"
+    assert "origin/main" in msg
+
+
+def test_run_reset_dirty_without_force_fails(tmp_path):
+    _, clone = setup_remote_repo(tmp_path)
+    (clone / "dirty.txt").write_text("x\n")
+    _, _, tag, msg = bulk_git.run_reset("repo", str(clone), force=False)
+    assert tag == "FAIL"
+    assert "--force" in msg
+
+
+def test_run_reset_dirty_with_force_succeeds(tmp_path):
+    _, clone = setup_remote_repo(tmp_path)
+    (clone / "dirty.txt").write_text("x\n")
+    _, _, tag, _ = bulk_git.run_reset("repo", str(clone), force=True)
+    assert tag == "OK"
+    assert not (clone / "dirty.txt").exists()
+
+
+def test_run_reset_clones_missing_repo(tmp_path):
+    bare, _ = setup_remote_repo(tmp_path)
+    dest_root = tmp_path / "dest"
+    dest_root.mkdir()
+    name, op, tag, msg = bulk_git.run_reset(
+        "clone", str(dest_root / "clone"), force=False,
+        clone_url=str(bare), clone_root=str(dest_root),
+    )
+    assert op == "clone"
+    assert tag == "OK"
+    assert (dest_root / "clone").is_dir()
 
 
 # ---- run_status ----

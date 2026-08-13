@@ -6,7 +6,7 @@ import sys
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
-from _common import handle_list, print_help, spinner, wants_help
+from _common import handle_list, print_help, reset_repo, spinner, wants_help
 
 USAGE = "toolbelt bulk-git <config|config.json|--here> <git-command> [args...]"
 DESCRIPTION = "Runs git operations across a set of repos in parallel."
@@ -34,6 +34,18 @@ OPTIONS = [
         "only valid with a config file, since it needs URLs.",
     ),
     ("args...", "Additional arguments passed through to the git command."),
+    (
+        "--reset",
+        "Toolbelt subcommand (not git reset): hard-resets each repo to its "
+        "remote tracking branch, then prunes untracked files. Clones any "
+        "repos that are missing (config mode only). Falls back to main if "
+        "the current branch no longer exists on the remote. Fails fast on "
+        "local changes unless --force is also passed.",
+    ),
+    (
+        "--force",
+        "Used with --reset: discards all uncommitted changes before resetting.",
+    ),
 ]
 EXAMPLES = [
     "toolbelt bulk-git --list",
@@ -42,6 +54,8 @@ EXAMPLES = [
     "toolbelt bulk-git writing pull --rebase",
     "toolbelt bulk-git writing clone",
     "toolbelt bulk-git --here fetch",
+    "toolbelt bulk-git writing --reset",
+    "toolbelt bulk-git writing --reset --force",
 ]
 
 GREEN  = "\033[92m"
@@ -105,6 +119,19 @@ def run_command(name, repo_path, git_args):
         tag = "OK" if result.returncode == 0 else "FAIL"
         msg = "" if tag == "OK" else (result.stderr.strip().splitlines() or [""])[-1]
         return (name, operation, tag, msg)
+    except Exception as e:
+        return (name, operation, "FAIL", str(e))
+
+
+def run_reset(name, repo_path, force, clone_url=None, clone_root=None):
+    operation = "reset"
+    try:
+        if not Path(repo_path).is_dir():
+            if clone_url and clone_root:
+                return run_clone(name, clone_url, clone_root)
+            return (name, operation, "FAIL", "directory not found")
+        ok, msg = reset_repo(repo_path, force)
+        return (name, operation, "OK" if ok else "FAIL", msg)
     except Exception as e:
         return (name, operation, "FAIL", str(e))
 
@@ -225,6 +252,13 @@ def main():
                 elif git_args == ["status"]:
                     repo_path = url_or_path if source == "--here" else str(Path(root) / name)
                     f = executor.submit(run_status, name, repo_path)
+                elif operation == "--reset":
+                    force = "--force" in git_args
+                    if source == "--here":
+                        f = executor.submit(run_reset, name, url_or_path, force)
+                    else:
+                        repo_path = str(Path(root) / name)
+                        f = executor.submit(run_reset, name, repo_path, force, url_or_path, root)
                 else:
                     repo_path = url_or_path if source == "--here" else str(Path(root) / name)
                     f = executor.submit(run_command, name, repo_path, git_args)
