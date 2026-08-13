@@ -148,7 +148,7 @@ def test_main_reset_dirty_with_force_succeeds(tmp_path):
     cfg = tmp_path / "conf.json"
     cfg.write_text(json.dumps({"root": str(clone.parent), "repos": [{"clone": "url"}]}))
     result = subprocess.run(
-        [sys.executable, str(GIT_AT_PY), str(cfg), "clone", "reset", "--force"],
+        [sys.executable, str(GIT_AT_PY), str(cfg), "clone", "--reset", "--force"],
         capture_output=True, text=True,
     )
     assert result.returncode == 0

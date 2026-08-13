@@ -22,7 +22,7 @@ toolbelt/
 
 The platform entry points (`toolbelt`, `toolbelt.bat`) never call `python`/`python3` directly — they call `uv run --project <repo-root> toolbelt.py "$@"`. `--project` pins the lookup to the toolbelt repo's `pyproject.toml`/`.venv` regardless of the caller's current directory (verified: cwd itself is left untouched, which matters for `bulk-git --here`); `uv run` transparently syncs the venv first if `pyproject.toml`/`uv.lock` changed, and will download a matching Python build itself if none is present on the machine at all.
 
-Inside `toolbelt.py`, `sys.executable` is therefore always that same `uv`-managed interpreter, on both platforms — `toolbelt.py` invokes every command with `[sys.executable, script] + baked_args + extra_args` via `subprocess.run`, so commands automatically run under the identical, fully-dependency-resolved interpreter with no `python`/`python3` guessing anywhere. This is also why `toolbelt doctor`'s self-test step can always find `pytest`: it's a dev dependency in `pyproject.toml`, and `uv run` syncs dev deps by default.
+Inside `toolbelt.py`, `sys.executable` is therefore always that same `uv`-managed interpreter, on all platforms — `toolbelt.py` invokes every command with `[sys.executable, script] + baked_args + extra_args` via `subprocess.run`, so commands automatically run under the identical, fully-dependency-resolved interpreter with no `python`/`python3` guessing anywhere. This is also why `toolbelt doctor`'s self-test step can always find `pytest`: it's a dev dependency in `pyproject.toml`, and `uv run` syncs dev deps by default.
 
 For each command, `commands.json` holds two separate strings:
 - `script`: path to the command's script, with `{TOOLBELT_ROOT}` substituted for the repo root (derived from `__file__`). Kept as a single, unsplit token — safe even if the path contains spaces.
@@ -68,6 +68,8 @@ with spinner(f"Syncing {len(repos)} repos..."):
      "description": "One-line purpose, shown by `toolbelt list`."
    }
    ```
+4. **Write for all three platforms** (Windows, Linux, macOS) — see the cross-platform rules in "Platform notes" above. Use `pathlib.Path` for paths, avoid non-ASCII stdout, and don't assume a shell.
+
 That's it. No changes to the dispatcher needed.
 
 ## Environment variables
@@ -80,10 +82,19 @@ That's it. No changes to the dispatcher needed.
 
 ## Platform notes
 
-Both platforms require [`uv`](https://docs.astral.sh/uv/) installed and on `PATH` — it is the sole global dependency; no separate Python install is required.
+Toolbelt targets **Windows, Linux, and macOS** equally. All three are first-class. Every new or updated command must work correctly on all three — no platform-specific assumptions in command scripts.
+
+Common pitfalls to avoid:
+- **Path separators**: always use `pathlib.Path` for filesystem operations; never concatenate paths with `/` or `\`.
+- **Console encoding**: don't print non-ASCII characters (e.g. emoji, fancy arrows) directly to stdout — they will fail on Windows terminals using legacy codepages.
+- **ANSI color**: only emit ANSI codes after calling `enable_ansi()` (see `bulk-git.py`), which enables VT processing on Windows. Commands that don't call `enable_ansi()` should not emit ANSI codes at all.
+- **Shell assumptions**: command scripts are Python, not shell scripts — don't use bash-isms or `subprocess.run(..., shell=True)` with shell syntax.
+- **Line endings**: `pathlib` / Python file I/O handles this; avoid assumptions about `\r\n` vs `\n`.
+
+All three platforms require [`uv`](https://docs.astral.sh/uv/) installed and on `PATH` — it is the sole global dependency; no separate Python install is required.
 
 - **Windows**: `toolbelt.bat` is the entry point. Add the repo root to `PATH` manually.
-- **Linux**: `toolbelt` (no extension, bash) is the entry point. Run `bash setup.sh` after cloning — it checks for `uv`, prompts for `TOOLBELT_CONFIG`, creates the directory, writes both env vars to the shell RC file, and runs `uv sync` to pre-warm the environment. `setup.sh` is idempotent; re-running it skips lines already present.
+- **Linux / macOS**: `toolbelt` (no extension, bash) is the entry point. Run `bash setup.sh` after cloning — it checks for `uv`, prompts for `TOOLBELT_CONFIG`, creates the directory, writes both env vars to the shell RC file, and runs `uv sync` to pre-warm the environment. `setup.sh` is idempotent; re-running it skips lines already present.
 
 ## Command inventory
 
