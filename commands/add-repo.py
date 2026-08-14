@@ -8,12 +8,18 @@ from _common import print_help, wants_help
 
 USAGE = "toolbelt add-repo (--here | --path <path>) --config <config|config.json>"
 DESCRIPTION = (
-    "Adds a git repository to a bulk-git config, keyed by its directory "
-    "name and pointing at its 'origin' remote URL."
+    "Adds git repositories to a bulk-git config. With --here, scans all "
+    "subdirectories of the current working directory for git repos and adds "
+    "them all. With --path, adds a single repo. Each repo is keyed by its "
+    "directory name and points at its 'origin' remote URL."
 )
 OPTIONS = [
-    ("--here", "Use the current working directory as the repo to add."),
-    ("--path <path>", "Use the given directory as the repo to add."),
+    (
+        "--here",
+        "Scan subdirectories of the current working directory for git repos "
+        "and add them all to the config.",
+    ),
+    ("--path <path>", "Use the given directory as the repo to add (single repo)."),
     (
         "--config <name|path>",
         "Resolved from $TOOLBELT_CONFIG/repos/<name>.json (.json extension "
@@ -30,17 +36,20 @@ EXAMPLES = [
 def parse_args(args):
     repo_path = None
     config = None
+    scan_mode = False
     i = 0
     while i < len(args):
         arg = args[i]
         if arg == "--here":
             repo_path = Path.cwd()
+            scan_mode = True
             i += 1
         elif arg == "--path":
             if i + 1 >= len(args):
                 print("Error: --path requires a value")
                 sys.exit(1)
             repo_path = Path(args[i + 1])
+            scan_mode = False
             i += 2
         elif arg == "--config":
             if i + 1 >= len(args):
@@ -59,7 +68,7 @@ def parse_args(args):
         print("Error: --config is required")
         sys.exit(1)
 
-    return repo_path, config
+    return repo_path, config, scan_mode
 
 
 def resolve_config_path(source):
@@ -84,12 +93,11 @@ def get_remote_url(repo_path):
     )
     if result.returncode != 0:
         msg = (result.stderr.strip().splitlines() or [""])[-1]
-        print(f"Error: could not read 'origin' remote for {repo_path}: {msg}")
-        sys.exit(1)
-    return result.stdout.strip()
+        return None, f"could not read 'origin' remote: {msg}"
+    return result.stdout.strip(), None
 
 
-def load_or_create_config(config_path, repo_path):
+def load_or_create_config(config_path, default_root):
     if config_path.is_file():
         with open(config_path) as f:
             return json.load(f)
@@ -100,7 +108,6 @@ def load_or_create_config(config_path, repo_path):
         print("Aborted.")
         sys.exit(1)
 
-    default_root = str(repo_path.resolve().parent)
     root = input(f"Root directory [{default_root}]: ").strip() or default_root
     return {"root": root, "repos": []}
 
@@ -118,43 +125,108 @@ def write_config(config_path, config):
     config_path.write_text(text)
 
 
+def find_git_repos(base_path):
+    repos = []
+    try:
+        children = sorted(base_path.iterdir())
+    except PermissionError:
+        return repos
+    for child in children:
+        if not child.is_dir():
+            continue
+        if (child / ".git").exists():
+            repos.append(child)
+        else:
+            repos.extend(find_git_repos(child))
+    return repos
+
+
 def main():
     args = sys.argv[1:]
     if wants_help(args):
         print_help(USAGE, DESCRIPTION, OPTIONS, EXAMPLES)
         return
 
-    repo_path, config_source = parse_args(args)
+    repo_path, config_source, scan_mode = parse_args(args)
 
-    if not (repo_path / ".git").exists():
-        print(f"Error: not a git repository: {repo_path}")
-        sys.exit(1)
+    if scan_mode:
+        found = find_git_repos(repo_path)
+        if not found:
+            print(f"No git repositories found under {repo_path}")
+            sys.exit(1)
 
-    name = repo_path.resolve().name
-    url = get_remote_url(repo_path)
+        config_path = resolve_config_path(config_source)
+        config = load_or_create_config(config_path, str(repo_path.resolve()))
 
-    config_path = resolve_config_path(config_source)
-    config = load_or_create_config(config_path, repo_path)
+        repos = [(list(r.keys())[0], list(r.values())[0]) for r in config["repos"]]
+        existing_names = {n for n, _ in repos}
 
-    repos = [(list(r.keys())[0], list(r.values())[0]) for r in config["repos"]]
-    existing_names = [n for n, _ in repos]
-    if name in existing_names:
-        print(f"Error: repo '{name}' already exists in config '{config_path}'")
-        sys.exit(1)
+        added = []
+        skipped = []
+        failed = []
 
-    expected_path = Path(config["root"]) / name
-    if repo_path.resolve() != expected_path.resolve():
+        for rp in found:
+            name = rp.resolve().name
+            if name in existing_names:
+                skipped.append(name)
+                continue
+            url, err = get_remote_url(rp)
+            if err:
+                failed.append((name, err))
+                continue
+            repos.append((name, url))
+            existing_names.add(name)
+            added.append((name, url))
+
+        config["repos"] = repos
+        if added:
+            write_config(config_path, config)
+
+        for name, url in added:
+            print(f"Added '{name}' -> {url}")
+        for name in skipped:
+            print(f"Skipped '{name}' (already in config)")
+        for name, err in failed:
+            print(f"Failed '{name}': {err}")
+
         print(
-            f"Warning: '{name}' is at {repo_path.resolve()}, but other "
-            f"toolbelt commands will look for it at {expected_path} "
-            f"(config root '{config['root']}')."
+            f"\n{len(added)} added, {len(skipped)} skipped, {len(failed)} failed"
+            f" -> {config_path}"
         )
 
-    repos.append((name, url))
-    config["repos"] = repos
-    write_config(config_path, config)
+    else:
+        if not (repo_path / ".git").exists():
+            print(f"Error: not a git repository: {repo_path}")
+            sys.exit(1)
 
-    print(f"Added '{name}' -> {url} to {config_path}")
+        name = repo_path.resolve().name
+        url, err = get_remote_url(repo_path)
+        if err:
+            print(f"Error: {err}")
+            sys.exit(1)
+
+        config_path = resolve_config_path(config_source)
+        config = load_or_create_config(config_path, str(repo_path.resolve().parent))
+
+        repos = [(list(r.keys())[0], list(r.values())[0]) for r in config["repos"]]
+        existing_names = [n for n, _ in repos]
+        if name in existing_names:
+            print(f"Error: repo '{name}' already exists in config '{config_path}'")
+            sys.exit(1)
+
+        expected_path = Path(config["root"]) / name
+        if repo_path.resolve() != expected_path.resolve():
+            print(
+                f"Warning: '{name}' is at {repo_path.resolve()}, but other "
+                f"toolbelt commands will look for it at {expected_path} "
+                f"(config root '{config['root']}')."
+            )
+
+        repos.append((name, url))
+        config["repos"] = repos
+        write_config(config_path, config)
+
+        print(f"Added '{name}' -> {url} to {config_path}")
 
 
 if __name__ == "__main__":

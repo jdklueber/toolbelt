@@ -17,19 +17,24 @@ def load_command(module_name, filename):
     return module
 
 
-def setup_remote_repo(tmp_path):
+def setup_remote_repo(tmp_path, subdir=None):
     """Creates a bare remote repo and a clean clone with an initial commit on main.
 
     Returns (bare_path, clone_path) as Path objects.
+
+    subdir: optional subdirectory name under tmp_path to namespace this repo,
+    useful when calling this helper multiple times for the same tmp_path.
     """
     import subprocess
 
-    bare = tmp_path / "remote.git"
-    bare.mkdir()
+    base = tmp_path / subdir if subdir else tmp_path
+
+    bare = base / "remote.git"
+    bare.mkdir(parents=True, exist_ok=True)
     subprocess.run(["git", "init", "--bare", "-q", str(bare)], check=True)
 
-    seed = tmp_path / "_seed"
-    seed.mkdir()
+    seed = base / "_seed"
+    seed.mkdir(parents=True, exist_ok=True)
     subprocess.run(["git", "init", "-q", str(seed)], check=True)
     subprocess.run(["git", "-C", str(seed), "config", "user.email", "test@example.com"], check=True)
     subprocess.run(["git", "-C", str(seed), "config", "user.name", "Test"], check=True)
@@ -42,7 +47,7 @@ def setup_remote_repo(tmp_path):
     # Point the bare repo's HEAD at main so clones check out the right branch.
     subprocess.run(["git", "-C", str(bare), "symbolic-ref", "HEAD", "refs/heads/main"], check=True)
 
-    clone = tmp_path / "clone"
+    clone = base / "clone"
     subprocess.run(["git", "clone", "-q", str(bare), str(clone)], check=True)
     subprocess.run(["git", "-C", str(clone), "config", "user.email", "test@example.com"], check=True)
     subprocess.run(["git", "-C", str(clone), "config", "user.name", "Test"], check=True)
