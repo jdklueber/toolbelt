@@ -19,6 +19,11 @@
     "args": "",
     "description": "Syncs all repos in a config: aborts if any are dirty, then clones missing repos and pulls+pushes the rest."
   },
+  "add-repo": {
+    "script": "{TOOLBELT_ROOT}/commands/add-repo.py",
+    "args": "",
+    "description": "Adds a git repo (--here or --path) to a bulk-git config's repos list."
+  },
   "list": {
     "script": "{TOOLBELT_ROOT}/commands/list.py",
     "args": "",
