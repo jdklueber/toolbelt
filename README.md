@@ -117,11 +117,7 @@ Config files live in `$TOOLBELT_CONFIG/repos/`. Pass just the filename; absolute
 
 `root` is created automatically on `clone` if it doesn't exist.
 
-**List available configs, or the repos within one:**
-```
-toolbelt bulk-git --list
-toolbelt bulk-git --list writing-repos
-```
+Configs are managed with [`repo-config`](#repo-config), not `bulk-git` itself.
 
 `status` gets special handling: instead of raw git output, each repo reports `CLEAN`/`CHANGES` plus ahead/behind counts against its upstream (or `no upstream` if it isn't tracking one).
 
@@ -144,7 +140,6 @@ toolbelt git-at <config> <repo-name> <git-command> [args...]
 
 - **config**: resolved the same way as `bulk-git` — filename from `$TOOLBELT_CONFIG/repos/` (`.json` extension optional), or an absolute/relative path to an existing file.
 - **repo-name**: must match a key in the config's `repos` list; the repo path is resolved as `<root>/<repo-name>`.
-- **--list [config]**: same as `bulk-git --list` — list all available configs, or the repos within one.
 
 stdin/stdout/stderr are passed through directly, so interactive git commands work normally.
 
@@ -159,7 +154,6 @@ Keep every repo in a config up to date in one shot: aborts before touching anyth
 
 ```
 toolbelt sync-all <config|config.json>
-toolbelt sync-all --list [config]
 ```
 
 Each repo reports a per-step audit trail (`clone`/`fetch`/`pull`/`push`, each tagged `OK`/`WARN`/`BLOCKED`/`CONFLICT`/`FAIL`). If a pull changes a dependency manifest (`package.json`, `uv.lock`, `Cargo.toml`, etc.), that repo gets an extra `deps-changed` `WARN` step naming the changed file(s), as a nudge to re-sync your local environment.
@@ -169,6 +163,36 @@ toolbelt sync-all writing-repos
 ```
 
 Exit code is `0` if all repos succeeded, `1` if any failed or a merge conflict occurred.
+
+### `repo-config`
+
+CRUD operations on bulk-git repo configs — used by `bulk-git`, `git-at`, and `sync-all`. This is the one place configs get listed, created, edited, or deleted; those other commands only consume them.
+
+```
+toolbelt repo-config list [config]
+toolbelt repo-config create <config> --root <path>
+toolbelt repo-config add <config> (--here | --path <path> | --name <name> --url <url>)
+toolbelt repo-config remove <config> <repo-name>
+toolbelt repo-config set-url <config> <repo-name> <url>
+toolbelt repo-config delete <config> [--force]
+```
+
+- **list**: with no config, lists every config in `$TOOLBELT_CONFIG/repos/`; with a config, lists the repos inside it.
+- **create**: makes a new, empty config at the given root directory.
+- **add**: adds repo(s) to an existing config — `--here` scans subdirectories of the current directory for git repos and adds every one found (keyed by directory name, pointed at its `origin` remote); `--path` adds a single local repo the same way; `--name`/`--url` adds an entry directly, without needing a local clone (handy for a repo you haven't cloned yet). Errors if the config doesn't exist yet — run `create` first.
+- **remove**: drops a repo entry from a config.
+- **set-url**: updates the remote URL recorded for a repo in a config.
+- **delete**: deletes a config file. Prompts for confirmation unless `--force` is given.
+
+```
+toolbelt repo-config create writing --root /home/jason/git/writing
+toolbelt repo-config add writing --here
+toolbelt repo-config add writing --name arryn --url https://github.com/user/arryn.git
+toolbelt repo-config list writing
+toolbelt repo-config set-url writing arryn https://github.com/user/arryn.git
+toolbelt repo-config remove writing arryn
+toolbelt repo-config delete writing
+```
 
 ## Adding a new command
 

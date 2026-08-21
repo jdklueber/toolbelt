@@ -390,21 +390,6 @@ def test_main_help_flag():
     assert "Usage: toolbelt sync-all" in result.stdout
 
 
-def test_main_list_passthrough(tmp_path):
-    repos_dir = tmp_path / "repos"
-    repos_dir.mkdir()
-    (repos_dir / "writing.json").write_text(json.dumps({"root": "/w", "repos": [{"x": "y"}]}))
-    env = os.environ.copy()
-    env["TOOLBELT_CONFIG"] = str(tmp_path)
-
-    result = subprocess.run(
-        [sys.executable, str(SYNC_ALL_PY), "--list", "writing"],
-        capture_output=True, text=True, env=env,
-    )
-    assert result.returncode == 0
-    assert "x" in result.stdout
-
-
 def test_main_too_few_args_prints_usage():
     result = subprocess.run(
         [sys.executable, str(SYNC_ALL_PY)], capture_output=True, text=True,

@@ -5,7 +5,7 @@ import sys
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
-from _common import handle_list, print_help, spinner, wants_help
+from _common import print_help, spinner, wants_help
 
 USAGE = "toolbelt sync-all <config|config.json>"
 DESCRIPTION = (
@@ -22,15 +22,8 @@ OPTIONS = [
         "Resolved from $TOOLBELT_CONFIG/repos/<name>.json (.json extension "
         "optional), or an absolute/relative path to an existing file.",
     ),
-    (
-        "--list [config]",
-        "List all available repo configs, or list the repos within a "
-        "specific config.",
-    ),
 ]
 EXAMPLES = [
-    "toolbelt sync-all --list",
-    "toolbelt sync-all --list writing",
     "toolbelt sync-all writing",
 ]
 
@@ -244,8 +237,6 @@ def main():
     args = sys.argv[1:]
     if wants_help(args):
         print_help(USAGE, DESCRIPTION, OPTIONS, EXAMPLES)
-        return
-    if handle_list(args):
         return
 
     if len(args) < 1:
